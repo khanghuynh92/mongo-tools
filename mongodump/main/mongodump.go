@@ -11,12 +11,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/signals"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/signals"
+	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongodump"
+	"github.com/pkg/profile"
 )
 
 const (
@@ -45,6 +46,11 @@ func main() {
 		log.Logvf(log.Always, "positional arguments not allowed: %v", args)
 		log.Logvf(log.Always, "try 'mongodump --help' for more information")
 		os.Exit(util.ExitBadOptions)
+	}
+
+	// turn on execution tracer, if specified
+	if opts.Trace {
+		defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
 	}
 
 	// print help, if specified
