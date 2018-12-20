@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"strings"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
@@ -57,6 +58,7 @@ type CollFunction struct {
 
 var ctx = context.Background()
 var emptyDoc = bsonx.Doc{}
+var emptyArr = bsonx.Arr{}
 var updateDoc = bsonx.Doc{{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}}
 var doc = bsonx.Doc{{"x", bsonx.Int32(1)}}
 var doc2 = bsonx.Doc{{"y", bsonx.Int32(1)}}
@@ -102,7 +104,7 @@ func createFuncMap(t *testing.T, dbName string, collName string, monitored bool)
 		{"UpdateOne", coll, nil, func(mctx SessionContext) error { _, err := coll.UpdateOne(mctx, emptyDoc, updateDoc); return err }},
 		{"UpdateMany", coll, nil, func(mctx SessionContext) error { _, err := coll.UpdateMany(mctx, emptyDoc, updateDoc); return err }},
 		{"ReplaceOne", coll, nil, func(mctx SessionContext) error { _, err := coll.ReplaceOne(mctx, emptyDoc, emptyDoc); return err }},
-		{"Aggregate", coll, nil, func(mctx SessionContext) error { _, err := coll.Aggregate(mctx, emptyDoc); return err }},
+		{"Aggregate", coll, nil, func(mctx SessionContext) error { _, err := coll.Aggregate(mctx, emptyArr); return err }},
 		{"Count", coll, nil, func(mctx SessionContext) error { _, err := coll.Count(mctx, emptyDoc); return err }},
 		{"Distinct", coll, nil, func(mctx SessionContext) error { _, err := coll.Distinct(mctx, "field", emptyDoc); return err }},
 		{"Find", coll, nil, func(mctx SessionContext) error { _, err := coll.Find(mctx, emptyDoc); return err }},
@@ -228,6 +230,7 @@ func createSessionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor) 
 		readPreference: readpref.Primary(),
 		readConcern:    readconcern.Local(),
 		clock:          clock,
+		registry:       bson.DefaultRegistry,
 	}
 
 	subscription, err := c.topology.Subscribe()
@@ -386,7 +389,7 @@ func TestSessions(t *testing.T) {
 		}{
 			{"ServerStatus", reflect.ValueOf(db.RunCommand), []interface{}{ctx, serverStatusDoc}, []interface{}{ctx, serverStatusDoc}},
 			{"InsertOne", reflect.ValueOf(coll.InsertOne), []interface{}{ctx, doc}, []interface{}{ctx, doc2}},
-			{"Aggregate", reflect.ValueOf(coll.Aggregate), []interface{}{ctx, emptyDoc}, []interface{}{ctx, emptyDoc}},
+			{"Aggregate", reflect.ValueOf(coll.Aggregate), []interface{}{ctx, emptyArr}, []interface{}{ctx, emptyArr}},
 			{"Find", reflect.ValueOf(coll.Find), []interface{}{ctx, emptyDoc}, []interface{}{ctx, emptyDoc}},
 		}
 
