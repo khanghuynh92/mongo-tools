@@ -11,7 +11,6 @@ package db
 import (
 	"context"
 	"errors"
-	"regexp"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/mongo"
@@ -75,9 +74,6 @@ type SessionProvider struct {
 
 	// whether Connect has been called on the mongoClient
 	connectCalled bool
-
-	// default read preference for new database objects
-	readPref *readpref.ReadPref
 }
 
 // ApplyOpsResponse represents the response from an 'applyOps' command.
@@ -128,9 +124,7 @@ func (self *SessionProvider) Close() {
 
 // DB provides a database with the default read preference
 func (self *SessionProvider) DB(name string) *mongo.Database {
-	self.Lock()
-	defer self.Unlock()
-	return self.client.Database(name, mopt.Database().SetReadPreference(self.readPref))
+	return self.client.Database(name)
 }
 
 // SetFlags allows certain modifications to the masterSession after initial creation.
@@ -141,9 +135,7 @@ func (self *SessionProvider) SetFlags(flagBits sessionFlag) {
 // SetReadPreference sets the read preference mode in the SessionProvider
 // and eventually in the masterSession
 func (self *SessionProvider) SetReadPreference(pref *readpref.ReadPref) {
-	self.Lock()
-	defer self.Unlock()
-	self.readPref = pref
+	panic("unsupported")
 }
 
 // SetBypassDocumentValidation sets whether to bypass document validation in the SessionProvider
@@ -183,6 +175,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt.SetSocketTimeout(SocketTimeout * time.Second)
 	clientopt.SetReplicaSet(opts.ReplicaSetName)
 	clientopt.SetSingle(opts.Direct)
+	if opts.ReadPreference != nil {
+		clientopt.SetReadPreference(opts.ReadPreference)
+	}
 
 	if opts.Auth != nil {
 		cred := mopt.Credential{
@@ -231,23 +226,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	if opts.URI != nil && opts.URI.ConnectionString != "" {
 		uri = opts.URI.ConnectionString
 	} else {
-		host := opts.Host
-		if host == "" {
-			host = "localhost"
-		}
-		hasPort, _ := regexp.MatchString(":[0-9]+$", host)
-		if hasPort && opts.Port != "" {
-			return nil, fmt.Errorf("can't specify --host with port and --port")
-		}
-		if hasPort {
-			uri = fmt.Sprintf("mongodb://%s/", host)
-		} else {
-			port := opts.Port
-			if port == "" {
-				port = "27017"
-			}
-			uri = fmt.Sprintf("mongodb://%s:%s/", host, port)
-		}
+		// Shouldn't ever reach here because URI should be set in options parsing, but
+		// just in case, we'll set a fallback.
+		uri = "mongodb://localhost/"
 	}
 
 	return mongo.NewClientWithOptions(uri, clientopt)

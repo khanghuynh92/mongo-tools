@@ -1,6 +1,6 @@
 gopkg.in/mgo.v2                         8c133fd1d0fc316302df84fc12769e17fb473bb1    github.com/10gen/mgo
 gopkg.in/tomb.v2                        14b3d72120e8d10ea6e6b7f87f7175734b1faab8
-github.com/mongodb/mongo-go-driver      master
+github.com/mongodb/mongo-go-driver      TOOLS-1833                                  github.com/xdg-forks/mongo-go-driver
 github.com/mongodb/mongo-tools-common   master
 github.com/jtolds/gls                   8ddce2a84170772b95dd5d576c48d517b22cac63
 github.com/jacobsa/oglematchers         3ecefc49db07722beca986d9bb71ddd026b133f0

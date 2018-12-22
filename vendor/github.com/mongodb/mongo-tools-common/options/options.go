@@ -17,7 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-tools-common/connstring"
 	"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/log"
@@ -79,6 +80,9 @@ type ToolOptions struct {
 	// with the given name. The default is to communicate with any server
 	// specified or discovered via the servers contacted.
 	ReplicaSetName string
+
+	// ReadPreference, if specified, sets the client default
+	ReadPreference *readpref.ReadPref
 
 	// for caching the parser
 	parser *flags.Parser
@@ -430,12 +434,6 @@ func (o *ToolOptions) ParseArgs(args []string) ([]string, error) {
 		return []string{}, err
 	}
 
-	// connect directly, unless a replica set name is explicitly specified
-	if o.Host != "" {
-		_, o.ReplicaSetName = util.ParseConnectionString(o.Host)
-		o.Direct = (o.ReplicaSetName == "")
-	}
-
 	failpoint.ParseFailpoints(o.Failpoints)
 
 	if o.URI != nil && o.URI.ConnectionString != "" {
@@ -447,7 +445,14 @@ func (o *ToolOptions) ParseArgs(args []string) ([]string, error) {
 		if err != nil {
 			return []string{}, err
 		}
+	} else {
+		// If URI not provided, get replica set name and generate connection string
+		_, o.ReplicaSetName = util.SplitHostArg(o.Host)
+		o.URI = &URI{ConnectionString: util.BuildURI(o.Host, o.Port)}
 	}
+
+	// connect directly, unless a replica set name is explicitly specified
+	o.Direct = (o.ReplicaSetName == "")
 
 	return args, err
 }
